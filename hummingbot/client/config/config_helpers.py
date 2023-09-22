@@ -112,6 +112,7 @@ class ConfigTraversalItem:
     type_: Type
 
 
+# 类似 ClientConfigMap 这种配置对象的代理对象，为这种配置对象统一提供一层处理，比如校验 Model 的结构是否符合预期等
 class ClientConfigAdapter:
     def __init__(self, hb_config: BaseClientModel):
         self._hb_config = hb_config
@@ -633,6 +634,7 @@ def load_client_config_map_from_file() -> ClientConfigAdapter:
     if len(config_validation_errors) > 0:
         all_errors = "\n".join(config_validation_errors)
         raise ConfigValidationError(f"There are errors in the client global configuration (\n{all_errors})")
+    # 将缺失的一些配置项在配置文件中补齐
     save_to_yml(yml_path, config_map)
 
     return config_map

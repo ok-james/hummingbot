@@ -842,7 +842,7 @@ class CommandShortcutModel(BaseModel):
     arguments: List[str]
     output: List[str]
 
-
+# conf/conf_client.yml 配置文件所对应的类，解析这个配置文件，并把相应的值保存到该类的实例中
 class ClientConfigMap(BaseClientModel):
     instance_id: str = Field(
         default=generate_client_id(),

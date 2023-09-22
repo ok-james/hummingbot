@@ -36,23 +36,31 @@ from hummingbot.core.utils.async_utils import safe_gather
 class CmdlineParser(argparse.ArgumentParser):
     def __init__(self):
         super().__init__()
-        self.add_argument("--config-file-name", "-f",
-                          type=str,
-                          required=False,
-                          help="Specify a file in `conf/` to load as the strategy config file.")
-        self.add_argument("--config-password", "-p",
-                          type=str,
-                          required=False,
-                          help="Specify the password to unlock your encrypted files.")
-        self.add_argument("--auto-set-permissions",
-                          type=str,
-                          required=False,
-                          help="Try to automatically set config / logs / data dir permissions, "
-                               "useful for Docker containers.")
+        self.add_argument(
+            "--config-file-name",
+            "-f",
+            type=str,
+            required=False,
+            help="Specify a file in `conf/` to load as the strategy config file.",
+        )
+        self.add_argument(
+            "--config-password",
+            "-p",
+            type=str,
+            required=False,
+            help="Specify the password to unlock your encrypted files.",
+        )
+        self.add_argument(
+            "--auto-set-permissions",
+            type=str,
+            required=False,
+            help="Try to automatically set config / logs / data dir permissions, " "useful for Docker containers.",
+        )
 
 
+# 自动为项目下的一些文件和文件夹修改文件所属的用户为 user_group_spec 所执行的用户
 def autofix_permissions(user_group_spec: str):
-    uid, gid = [sub_str for sub_str in user_group_spec.split(':')]
+    uid, gid = [sub_str for sub_str in user_group_spec.split(":")]
 
     uid = int(uid) if uid.isnumeric() else pwd.getpwnam(uid).pw_uid
     gid = int(gid) if gid.isnumeric() else grp.getgrnam(gid).gr_gid
@@ -62,10 +70,9 @@ def autofix_permissions(user_group_spec: str):
 
     gateway_path: str = Path.home().joinpath(".hummingbot-gateway").as_posix()
     subprocess.run(
-        f"cd '{project_home}' && "
-        f"sudo chown -R {user_group_spec} conf/ data/ logs/ scripts/ {gateway_path}",
+        f"cd '{project_home}' && " f"sudo chown -R {user_group_spec} conf/ data/ logs/ scripts/ {gateway_path}",
         capture_output=True,
-        shell=True
+        shell=True,
     )
     os.setgid(gid)
     os.setuid(uid)
@@ -73,6 +80,7 @@ def autofix_permissions(user_group_spec: str):
 
 async def quick_start(args: argparse.Namespace, secrets_manager: BaseSecretsManager):
     config_file_name = args.config_file_name
+    # 加载 conf/conf_client.yml 配置文件
     client_config_map = load_client_config_map_from_file()
 
     if args.auto_set_permissions is not None:
@@ -100,9 +108,7 @@ async def quick_start(args: argparse.Namespace, secrets_manager: BaseSecretsMana
             hb.strategy_name = hb.strategy_file_name
             is_script = True
         else:
-            strategy_config = await load_strategy_config_map_from_file(
-                STRATEGIES_CONF_DIR_PATH / config_file_name
-            )
+            strategy_config = await load_strategy_config_map_from_file(STRATEGIES_CONF_DIR_PATH / config_file_name)
             hb.strategy_name = (
                 strategy_config.strategy
                 if isinstance(strategy_config, ClientConfigAdapter)
@@ -141,6 +147,8 @@ def main():
     # If no password is given from the command line, prompt for one.
     secrets_manager_cls = ETHKeyFileSecretManger
     client_config_map = load_client_config_map_from_file()
+
+    # 如果在命令行运行命令时没有设置密码，则需要让用户提供
     if args.config_password is None:
         secrets_manager = login_prompt(secrets_manager_cls, style=load_style(client_config_map))
         if not secrets_manager:

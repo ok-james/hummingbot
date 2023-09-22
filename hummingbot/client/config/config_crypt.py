@@ -46,11 +46,13 @@ class ETHKeyFileSecretManger(BaseSecretsManager):
     def encrypt_secret_value(self, attr: str, value: str):
         if self._password is None:
             raise ValueError(f"Could not encrypt secret attribute {attr} because no password was provided.")
+        # 返回字符串编码后的字节，默认是编码成 utf-8
         password_bytes = self._password.encode()
         value_bytes = value.encode()
         keyfile_json = _create_v3_keyfile_json(value_bytes, password_bytes)
         json_str = json.dumps(keyfile_json)
         encrypted_value = binascii.hexlify(json_str.encode()).decode()
+        # 使用 password_bytes 对 value_bytes 进行加密后的结果
         return encrypted_value
 
     def decrypt_secret_value(self, attr: str, value: str) -> str:
@@ -62,6 +64,7 @@ class ETHKeyFileSecretManger(BaseSecretsManager):
 
 
 def store_password_verification(secrets_manager: BaseSecretsManager):
+    # 使用密码对 PASSWORD_VERIFICATION_WORD 所对应的字符串进行加密，然后将加密后的结果保存到 .password_verification 文件中
     encrypted_word = secrets_manager.encrypt_secret_value(PASSWORD_VERIFICATION_WORD, PASSWORD_VERIFICATION_WORD)
     with open(PASSWORD_VERIFICATION_PATH, "w") as f:
         f.write(encrypted_word)
@@ -72,6 +75,7 @@ def validate_password(secrets_manager: BaseSecretsManager) -> bool:
     with open(PASSWORD_VERIFICATION_PATH, "r") as f:
         encrypted_word = f.read()
     try:
+        # 使用密码对保存的校验内容进行解密，并与 PASSWORD_VERIFICATION_WORD 进行对比，判断密码是否正确
         decrypted_word = secrets_manager.decrypt_secret_value(PASSWORD_VERIFICATION_WORD, encrypted_word)
         valid = decrypted_word == PASSWORD_VERIFICATION_WORD
     except ValueError as e:
@@ -90,21 +94,21 @@ def _create_v3_keyfile_json(message_to_encrypt, password, kdf="pbkdf2", work_fac
     if work_factor is None:
         work_factor = get_default_work_factor_for_kdf(kdf)
 
-    if kdf == 'pbkdf2':
+    if kdf == "pbkdf2":
         derived_key = _pbkdf2_hash(
             password,
-            hash_name='sha256',
+            hash_name="sha256",
             salt=salt,
             iterations=work_factor,
             dklen=DKLEN,
         )
         kdfparams = {
-            'c': work_factor,
-            'dklen': DKLEN,
-            'prf': 'hmac-sha256',
-            'salt': encode_hex_no_prefix(salt),
+            "c": work_factor,
+            "dklen": DKLEN,
+            "prf": "hmac-sha256",
+            "salt": encode_hex_no_prefix(salt),
         }
-    elif kdf == 'scrypt':
+    elif kdf == "scrypt":
         derived_key = _scrypt_hash(
             password,
             salt=salt,
@@ -114,11 +118,11 @@ def _create_v3_keyfile_json(message_to_encrypt, password, kdf="pbkdf2", work_fac
             n=work_factor,
         )
         kdfparams = {
-            'dklen': DKLEN,
-            'n': work_factor,
-            'r': SCRYPT_R,
-            'p': SCRYPT_P,
-            'salt': encode_hex_no_prefix(salt),
+            "dklen": DKLEN,
+            "n": work_factor,
+            "r": SCRYPT_R,
+            "p": SCRYPT_P,
+            "salt": encode_hex_no_prefix(salt),
         }
     else:
         raise NotImplementedError("KDF not implemented: {0}".format(kdf))
@@ -129,16 +133,16 @@ def _create_v3_keyfile_json(message_to_encrypt, password, kdf="pbkdf2", work_fac
     mac = keccak(derived_key[16:32] + ciphertext)
 
     return {
-        'crypto': {
-            'cipher': 'aes-128-ctr',
-            'cipherparams': {
-                'iv': encode_hex_no_prefix(int_to_big_endian(iv)),
+        "crypto": {
+            "cipher": "aes-128-ctr",
+            "cipherparams": {
+                "iv": encode_hex_no_prefix(int_to_big_endian(iv)),
             },
-            'ciphertext': encode_hex_no_prefix(ciphertext),
-            'kdf': kdf,
-            'kdfparams': kdfparams,
-            'mac': encode_hex_no_prefix(mac),
+            "ciphertext": encode_hex_no_prefix(ciphertext),
+            "kdf": kdf,
+            "kdfparams": kdfparams,
+            "mac": encode_hex_no_prefix(mac),
         },
-        'version': 3,
-        'alias': '',  # Add this line to include the 'alias' field with an empty string value
+        "version": 3,
+        "alias": "",  # Add this line to include the 'alias' field with an empty string value
     }
