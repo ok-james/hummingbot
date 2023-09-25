@@ -12,7 +12,7 @@ async def safe_wrapper(c):
     except Exception as e:
         logging.getLogger(__name__).error(f"Unhandled error in background task: {str(e)}", exc_info=True)
 
-
+# 用于安全的创建一个 Future
 def safe_ensure_future(coro, *args, **kwargs):
     return asyncio.ensure_future(safe_wrapper(coro), *args, **kwargs)
 

@@ -20,7 +20,9 @@ from hummingbot.core.utils.async_utils import safe_ensure_future
 
 class Security:
     __instance = None
+    # 用于管理密码的安全管理器
     secrets_manager: Optional[BaseSecretsManager] = None
+    # 用来存储交易所的配置信息，其中键是交易所的名称，值是配置信息
     _secure_configs = {}
     _decryption_done = asyncio.Event()
 
@@ -37,15 +39,18 @@ class Security:
         connector_configs_path = get_connector_config_yml_path(connector_name)
         return connector_configs_path.exists()
 
+    # 判断当前用户的登录状态是否有效，也就是判断密码是否有效
     @classmethod
     def login(cls, secrets_manager: BaseSecretsManager) -> bool:
         if not validate_password(secrets_manager):
             return False
         cls.secrets_manager = secrets_manager
+        # 异步运行 decrypt_all ，不会阻塞程序的执行
         coro = AsyncCallScheduler.shared_instance().call_async(cls.decrypt_all, timeout_seconds=30)
         safe_ensure_future(coro)
         return True
 
+    # 用于解析本地配置的所有的交易所的配置信息，注意，是在用户使用时实际配置的交易所，而不是所有支持的交易所
     @classmethod
     def decrypt_all(cls):
         cls._secure_configs.clear()
@@ -94,9 +99,5 @@ class Security:
     @classmethod
     def api_keys(cls, connector_name: str) -> Dict[str, Optional[str]]:
         connector_config = cls.decrypted_value(connector_name)
-        keys = (
-            api_keys_from_connector_config_map(connector_config)
-            if connector_config is not None
-            else {}
-        )
+        keys = api_keys_from_connector_config_map(connector_config) if connector_config is not None else {}
         return keys

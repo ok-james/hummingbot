@@ -27,6 +27,7 @@ PASSWORD_VERIFICATION_PATH = CONF_DIR_PATH / ".password_verification"
 
 class BaseSecretsManager(ABC):
     def __init__(self, password: str):
+        # 保存的是当前用户每次登录时输入的密码，不一定是正确的密码，会通过 decrypt_secret_value 方法来反解 .password_verification 中的内容进行判断
         self._password = password
 
     @property

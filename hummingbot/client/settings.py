@@ -360,8 +360,10 @@ class ConnectorSetting(NamedTuple):
 
 
 class AllConnectorSettings:
+    # 项目中已支持的所有交易所的设置信息
     all_connector_settings: Dict[str, ConnectorSetting] = {}
 
+    # 创建交易所的配置项的信息，通过这个方法，应该可以知道接入一个新的交易所需要符合怎样的目录结构
     @classmethod
     def create_connector_settings(cls):
         """
@@ -478,6 +480,7 @@ class AllConnectorSettings:
             cls.all_connector_settings = cls.create_connector_settings()
         return cls.all_connector_settings
 
+    # 获取 connector 对应的交易所的配置项的信息
     @classmethod
     def get_connector_config_keys(cls, connector: str) -> Optional["BaseConnectorConfigMap"]:
         return cls.get_connector_settings()[connector].config_keys

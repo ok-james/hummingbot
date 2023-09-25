@@ -90,11 +90,15 @@ async def quick_start(args: argparse.Namespace, secrets_manager: BaseSecretsMana
         logging.getLogger().error("Invalid password.")
         return
 
+    # 等待所有本地的交易所配置都解析完成
     await Security.wait_til_decryption_done()
     await create_yml_files_legacy()
+    # 初始化日志配置文件
     init_logging("hummingbot_logs.yml", client_config_map)
+    # 读取费用信息的配置文件 conf_fee_overrides.yml
     await read_system_configs_from_yml()
 
+    # 初始化本地测试交易所，这种交易所会在本地模拟买入、卖出、获取余额等操作，便于测试
     AllConnectorSettings.initialize_paper_trade_settings(client_config_map.paper_trade.paper_trade_exchanges)
 
     hb = HummingbotApplication.main_application(client_config_map=client_config_map)
