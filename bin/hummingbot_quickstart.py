@@ -62,18 +62,33 @@ class CmdlineParser(argparse.ArgumentParser):
 def autofix_permissions(user_group_spec: str):
     uid, gid = [sub_str for sub_str in user_group_spec.split(":")]
 
+    # pwd.getpwnam 方法的作用是根据用户名查找并返回与该用户名关联的用户信息（Unix 用户账户信息）
+    # pw_uid：用户UID（唯一标识用户的数字）
     uid = int(uid) if uid.isnumeric() else pwd.getpwnam(uid).pw_uid
+    # grp.getgrnam 方法的作用是根据组名查找并返回与该组名关联的组信息（Unix 用户组信息）
+    # gr_gid：组的GID（唯一标识组的数字）
     gid = int(gid) if gid.isnumeric() else grp.getgrnam(gid).gr_gid
 
+    # pwd.getpwuid 方法的作用是根据用户标识符（UID）查找并返回与该UID关联的用户信息（Unix 用户账户信息），
+    # 注意：pwd.getpwuid 和 pwd.getpwnam 方法都是用来获取用户账户信息的，只不过 pwd.getpwuid 的入参是 uid ，而 pwd.getpwnam 的入参是 username
+    # pw_dir：用户的主目录路径
+    # $HOME ：用户主目录
     os.environ["HOME"] = pwd.getpwuid(uid).pw_dir
+    # os.path.realpath() 获取绝对路径，所以这里是获取根目录的绝对路径
     project_home: str = os.path.realpath(os.path.join(__file__, "../../"))
 
+    '''
+    1. Path.home() 是一个方法，用于获取当前用户的主目录路径。这通常是用户的个人文件和配置存储的位置。
+    2. .joinpath(".hummingbot-gateway") 是使用 Path 对象的方法，用于将当前用户的主目录路径与一个相对路径（这里是 ".hummingbot-gateway"）连接起来，以创建一个新的 Path 对象。
+    3. .as_posix() 方法用于将 Path 对象转换为字符串形式，以确保 gateway_path 是一个字符串而不是 Path 对象。
+    '''
     gateway_path: str = Path.home().joinpath(".hummingbot-gateway").as_posix()
     subprocess.run(
         f"cd '{project_home}' && " f"sudo chown -R {user_group_spec} conf/ data/ logs/ scripts/ {gateway_path}",
         capture_output=True,
         shell=True,
     )
+    # os.setgid(gid) 和 os.setuid(uid) 是用于改变进当前程的用户组ID（GID）和用户ID（UID）的系统调用
     os.setgid(gid)
     os.setuid(uid)
 
@@ -149,6 +164,7 @@ def main():
         args.config_password = os.environ["CONFIG_PASSWORD"]
 
     # If no password is given from the command line, prompt for one.
+    # 加解密密码的类
     secrets_manager_cls = ETHKeyFileSecretManger
     client_config_map = load_client_config_map_from_file()
 

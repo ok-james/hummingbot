@@ -50,7 +50,7 @@ class Security:
         safe_ensure_future(coro)
         return True
 
-    # 用于解析本地配置的所有的交易所的配置信息，注意，是在用户使用时实际配置的交易所，而不是所有支持的交易所
+    # 用于解析用户本地配置的所有的交易所的配置信息，注意，是在用户使用时实际配置的交易所，而不是所有支持的交易所
     @classmethod
     def decrypt_all(cls):
         cls._secure_configs.clear()

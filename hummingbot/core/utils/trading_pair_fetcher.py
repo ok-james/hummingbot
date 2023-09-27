@@ -27,6 +27,7 @@ class TradingPairFetcher:
 
     def __init__(self, client_config_map: ClientConfigAdapter):
         self.ready = False
+        # Todo 存放的应该是交易所支持的所有交易对，键为交易所的名字，值为交易对的字典信息
         self.trading_pairs: Dict[str, Any] = {}
         self._fetch_task = safe_ensure_future(self.fetch_all(client_config_map))
 
