@@ -38,6 +38,7 @@ CONF_DIR_PATH = root_path() / "conf"
 CLIENT_CONFIG_PATH = CONF_DIR_PATH / "conf_client.yml"
 TRADE_FEES_CONFIG_PATH = CONF_DIR_PATH / "conf_fee_overrides.yml"
 STRATEGIES_CONF_DIR_PATH = CONF_DIR_PATH / "strategies"
+# 用户本地配置的交易所的配置文件的目录
 CONNECTORS_CONF_DIR_PATH = CONF_DIR_PATH / "connectors"
 CONF_PREFIX = "conf_"
 CONF_POSTFIX = "_strategy"
@@ -379,6 +380,7 @@ class AllConnectorSettings:
         for type_dir in type_dirs:
             if type_dir.name == 'gateway':
                 continue
+            # 是 hummingbot/connector/exchange/binance 、 hummingbot/connector/exchange/bybit 这一级目录的列表
             connector_dirs: List[DirEntry] = [
                 cast(DirEntry, f) for f in scandir(type_dir.path)
                 if f.is_dir() and exists(join(f.path, "__init__.py"))
@@ -391,6 +393,7 @@ class AllConnectorSettings:
                 try:
                     util_module_path: str = f"hummingbot.connector.{type_dir.name}." \
                                             f"{connector_dir.name}.{connector_dir.name}_utils"
+                    # importlib.import_module：运行时动态加载模块
                     util_module = importlib.import_module(util_module_path)
                 except ModuleNotFoundError:
                     continue
@@ -432,6 +435,19 @@ class AllConnectorSettings:
                     )
 
         # add gateway connectors
+        '''
+        Hummingbot 的 "gateway" 是指连接到不同加密货币交易所的接口，它充当了 Hummingbot 与交易所之间的桥梁，使 Hummingbot 能够与各种不同的交易所进行交互。这个功能对于创建和管理交易机器人非常重要，因为不同的交易所可能有不同的API、安全性要求和数据格式，而 Hummingbot 的 gateway 为用户提供了一个统一的方式来与这些交易所进行通信。
+
+        具体来说，Hummingbot 的 gateway 主要执行以下任务：
+
+        1. 连接交易所：它提供了连接到不同交易所的能力，包括设置API密钥、建立连接和进行身份验证等。
+        2. 获取市场数据：Hummingbot 通过 gateway 从交易所获取市场数据，包括交易对价格、深度数据、历史交易等。这些数据对于制定交易策略非常重要。
+        3. 执行交易订单：通过 gateway，Hummingbot 可以创建和执行交易订单，包括市价单、限价单、止损单等，从而实现自动交易策略。
+        4. 管理账户信息：gateway 也允许 Hummingbot 查询账户余额、交易历史和开放订单等信息，以便更好地监控和管理交易。
+        5. 错误处理和安全性：gateway 处理与交易所通信时可能出现的错误，同时确保交易所API的安全性，以防止未经授权的访问。
+
+        总之，Hummingbot 的 gateway 是一个重要的组件，使用户能够轻松地在多个不同的加密货币交易所上运行交易策略，从而实现自动化的加密货币交易。
+        '''
         gateway_connections_conf: List[Dict[str, str]] = GatewayConnectionSetting.load()
         trade_fee_settings: List[float] = [0.0, 0.0]  # we assume no swap fees for now
         trade_fee_schema: TradeFeeSchema = cls._validate_trade_fee_schema("gateway", trade_fee_settings)

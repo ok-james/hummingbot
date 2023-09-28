@@ -22,7 +22,9 @@ class Security:
     __instance = None
     # 用于管理密码的安全管理器
     secrets_manager: Optional[BaseSecretsManager] = None
-    # 用来存储交易所的配置信息，其中键是交易所的名称，值是配置信息
+    # 用于存储交易所的 secret key 的模型对象，其中键是交易所的名字，值是对应交易所的 KEYS 的 model 对象，
+    # 具体的 model 对象，可以到 hummingbot/connector 的子目录下找某个交易所的 xxx_utils.py 文件里的 KEYS 看一下，
+    # 这个 KEYS 就是各个交易所自己的 secret key 的配置项模型
     _secure_configs = {}
     _decryption_done = asyncio.Event()
 
@@ -55,6 +57,7 @@ class Security:
     def decrypt_all(cls):
         cls._secure_configs.clear()
         cls._decryption_done.clear()
+        # 用户本地配置的交易所配置文件的列表
         encrypted_files = list_connector_configs()
         for file in encrypted_files:
             cls.decrypt_connector_config(file)
