@@ -27,7 +27,7 @@ _cert_path = None
 def root_path() -> Path:
     from os.path import join, realpath
 
-    # root_path 这个方法无论是在哪里调用，__file__ 的值都是指当前文件
+    # root_path 这个方法无论是在哪里调用，__file__ 的值都是指当前文件，而
     # 这里有点反直觉， "../../" 对应的是当前项目的根目录，当前文件用如下路径表示： /hummingbot/__init__.py ，那么 "../../" 就是指的开头的 "/"，
     # 而如果是 "../" 的话，对应的就是 "/hummingbot" ，感觉是 __init__.py 也是一级路径
     # 这可能是由于 join(__file__, "../../") 的结果导致的：/Users/zhangwubin/Desktop/source/deploy-examples/hello/hello.py/../../
@@ -42,6 +42,7 @@ def get_executor() -> ThreadPoolExecutor:
     return _shared_executor
 
 
+# 项目运行的根目录
 def prefix_path() -> str:
     global _prefix_path
     if _prefix_path is None:
@@ -155,6 +156,7 @@ def init_logging(
 
     global STRUCT_LOGGER_SET
     if not STRUCT_LOGGER_SET:
+        # 这两行代码设置了 Python 的日志系统，使其使用自定义的 StructLogRecord 和 StructLogger 来处理日志记录。
         logging.setLogRecordFactory(StructLogRecord)
         logging.setLoggerClass(StructLogger)
         STRUCT_LOGGER_SET = True
@@ -166,6 +168,7 @@ def init_logging(
     yaml_parser: YAML = YAML()
     with open(file_path) as fd:
         yml_source: str = fd.read()
+        # 替换配置文件中的占位符：在读取配置文件后，代码对配置文件内容进行了一系列的替换操作
         yml_source = yml_source.replace("$PROJECT_DIR", prefix_path())
         yml_source = yml_source.replace("$DATETIME", pd.Timestamp.now().strftime("%Y-%m-%d-%H-%M-%S"))
         yml_source = yml_source.replace("$STRATEGY_FILE_PATH", strategy_file_path.replace(".yml", ""))
@@ -175,6 +178,7 @@ def init_logging(
             for logger in config_dict["loggers"]:
                 if logger in client_config_map.logger_override_whitelist:
                     config_dict["loggers"][logger]["level"] = override_log_level
+        # 将 config_dict 中的配置应用到 Python 的日志系统中，从而配置了日志记录的格式和行为。
         logging.config.dictConfig(config_dict)
 
 

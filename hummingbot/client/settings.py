@@ -69,7 +69,7 @@ class ConnectorType(Enum):
     """
     The types of exchanges that hummingbot client can communicate with.
     """
-
+    # Todo 不同交易所类型之间有什么区别
     AMM = "AMM"
     AMM_LP = "AMM_LP"
     AMM_Perpetual = "AMM_Perpetual"
@@ -173,15 +173,27 @@ class GatewayConnectionSetting:
 
 
 class ConnectorSetting(NamedTuple):
+    # 交易所的名字
     name: str
+    # 交易所的类型
     type: ConnectorType
+    # Todo 估计是实例的交易对，但是具体作用是什么，有待研究
     example_pair: str
+    # Todo 作用有待研究
     centralised: bool
     use_ethereum_wallet: bool
     trade_fee_schema: TradeFeeSchema
     config_keys: Optional["BaseConnectorConfigMap"]
+    # 是否是通过 OTHER_DOMAINS 生成的交易所设置，如果是，则为 True ，反之为 False
     is_sub_domain: bool
+    '''
+    父交易所，一般有两种情况会设置父交易所：
+    1. 在交易所代码的 xxx_utils.py 里配置了 OTHER_DOMAINS 的话，会在生成 OTHER_DOMAINS 内的交易所设置时设置父交易所，可以看一下 binance 交易所代码中的相关配置
+    2. paper 交易所，会设置父交易所
+    说白了，配置父交易所，就是要用父交易所的一些设置，比如获取交易所的交易对时，就可以直接用父交易所的能力
+    '''
     parent_name: Optional[str]
+    # Todo 通过 OTHER_DOMAINS_PARAMETER 中的配置得到的，会作为实例化交易所实例的 domain 入参，但是这个 domain 入参在交易所实例中的作用未知
     domain_parameter: Optional[str]
     use_eth_gas_lookup: bool
     """
@@ -198,6 +210,7 @@ class ConnectorSetting(NamedTuple):
 
     def module_name(self) -> str:
         # returns connector module name, e.g. binance_exchange
+        # Todo 这块 gateway 的逻辑暂时不研究
         if self.uses_gateway_generic_connector():
             if 'AMM' in self.type.name:
                 # AMMs currently have multiple generic connectors. chain_type is used to determine the right connector to use.
@@ -209,14 +222,19 @@ class ConnectorSetting(NamedTuple):
                 raise ValueError(f"Unsupported connector type: {self.type}")
         return f"{self.base_name()}_{self._get_module_package()}"
 
+    # 获取交易所模块的完整路径
     def module_path(self) -> str:
         # return connector full path name, e.g. hummingbot.connector.exchange.binance.binance_exchange
+        # Todo 去中心化交易所应该会返回这个路径，去中心化交易所难道都是通过 gateway 来访问的吗？ gateway 到底是做什么的？
         if self.uses_gateway_generic_connector():
             return f"hummingbot.connector.{self.module_name()}"
+        # 中心化交易所会返回这个路径
         return f"hummingbot.connector.{self._get_module_package()}.{self.base_name()}.{self.module_name()}"
 
+    # 获取交易所模块中导出的类
     def class_name(self) -> str:
         # return connector class name, e.g. BinanceExchange
+        # Todo 暂不研究 gateway
         if self.uses_gateway_generic_connector():
             file_name = self.module_name().split('.')[-1]
             splited_name = file_name.split('_')
@@ -246,6 +264,7 @@ class ConnectorSetting(NamedTuple):
                 class_name = f"{self.name.split('_')[0].capitalize()}APIDataSource"
         return class_name
 
+    # 生成初始化交易所实例的入参
     def conn_init_parameters(
         self,
         trading_pairs: Optional[List[str]] = None,
@@ -255,6 +274,7 @@ class ConnectorSetting(NamedTuple):
     ) -> Dict[str, Any]:
         trading_pairs = trading_pairs or []
         api_keys = api_keys or {}
+        # Todo 代码先不关注
         if self.uses_gateway_generic_connector():  # init parameters for gateway connectors
             params = {}
             if self.config_keys is not None:
@@ -276,8 +296,10 @@ class ConnectorSetting(NamedTuple):
                     connector_spec=connector_spec,
                 )
         elif not self.is_sub_domain:
+            # 如果不是子域名，则是 paper ，使用与父交易所相同的 api_keys 即可
             params = api_keys
         else:
+            # 是子域名，需要将 api_keys 中的子域名的名字替换为父交易所的名字
             params: Dict[str, Any] = {k.replace(self.name, self.parent_name): v for k, v in api_keys.items()}
             params["domain"] = self.domain_parameter
 
@@ -305,6 +327,7 @@ class ConnectorSetting(NamedTuple):
         else:
             return self.name
 
+    # 创建一个没有交易功能的ConnectorBase实例，并使用默认配置进行初始化。
     def non_trading_connector_instance_with_default_configuration(
             self,
             trading_pairs: Optional[List[str]] = None) -> 'ConnectorBase':
@@ -312,11 +335,15 @@ class ConnectorSetting(NamedTuple):
         from hummingbot.client.hummingbot_application import HummingbotApplication
 
         trading_pairs = trading_pairs or []
+        # 动态导入交易所模块的类
+        # 比如，对于 binance 来说，就是动态导入 connector/exchange/binance/binance_exchange.py 下的 BinanceExchange 类
         connector_class = getattr(importlib.import_module(self.module_path()), self.class_name())
         kwargs = {}
+        # 下面的 if...elif... 是为了获取交易所的 api secret keys 相关的信息
         if isinstance(self.config_keys, Dict):
             kwargs = {key: (config.value or "") for key, config in self.config_keys.items()}  # legacy
         elif self.config_keys is not None:
+            # Todo 下面的代码暂不研究，直到是在做什么的就行了，先忽略细节
             kwargs = {
                 traverse_item.attr: traverse_item.value.get_secret_value()
                 if isinstance(traverse_item.value, SecretStr)
@@ -331,7 +358,9 @@ class ConnectorSetting(NamedTuple):
             api_keys=kwargs,
             client_config_map=HummingbotApplication.main_application().client_config_map,
         )
+        # 如果当前交易所设置是子域名的话，则向入参中添加 domain 的入参
         kwargs = self.add_domain_parameter(kwargs)
+        # 实例化交易所类的实例
         connector = connector_class(**kwargs)
 
         return connector

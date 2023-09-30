@@ -35,10 +35,14 @@ class ConfigVar:
                  is_connect_key: bool = False,
                  printable_key: str = None):
         self.prompt = prompt
+        # 字段的名称
         self.key = key
+        # 字段的值
         self.value = None
         self.is_secure = is_secure
+        # 字段的默认值
         self.default = default
+        # 字段对应值的类型
         self.type = type_str
         self._required_if = required_if
         self._validator = validator

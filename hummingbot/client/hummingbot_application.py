@@ -69,6 +69,7 @@ class HummingbotApplication(*commands):
         return cls._main_app
 
     def __init__(self, client_config_map: Optional[ClientConfigAdapter] = None):
+        # 解析 conf/conf_client.yml 文件的配置项
         self.client_config_map: Union[ClientConfigMap, ClientConfigAdapter] = (  # type-hint enables IDE auto-complete
             client_config_map or load_client_config_map_from_file()
         )
@@ -83,6 +84,7 @@ class HummingbotApplication(*commands):
         self._strategy_file_name: Optional[str] = None
         self.strategy_name: Optional[str] = None
         self._strategy_config_map: Optional[BaseStrategyConfigMap] = None
+        # 当前正在运行的策略任务
         self.strategy_task: Optional[asyncio.Task] = None
         self.strategy: Optional[StrategyBase] = None
         self.market_pair: Optional[MakerTakerMarketPair] = None
@@ -111,8 +113,9 @@ class HummingbotApplication(*commands):
 
         # gateway variables and monitor
         self._gateway_monitor = GatewayStatusMonitor(self)
-
+        # 通过这个方法初始化的命令都会用到右侧页面中的 Tab 能力
         command_tabs = self.init_command_tabs()
+        # 命令解析器
         self.parser: ThrowingArgumentParser = load_parser(self, command_tabs)
         self.app = HummingbotCLI(
             self.client_config_map,

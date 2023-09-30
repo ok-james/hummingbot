@@ -711,9 +711,17 @@ async def save_yml_from_dict(yml_path: str, conf_dict: Dict[str, Any]):
         logging.getLogger().error(f"Error writing configs: {str(e)}", exc_info=True)
 
 
+"""
+yml_path：配置文件的路径
+template_file_path：配置文件的模板的路径
+cm：配置对象，配置文件中的每个配置在 cm 中都有一个对应的配置项，可以对配置文件中的内容进行校验，校验通过后，会存储配置文件的内容
+"""
+
+
 async def load_yml_into_cm_legacy(yml_path: str, template_file_path: str, cm: Dict[str, ConfigVar]):
     try:
         data = {}
+        # 配置文件的版本
         conf_version = -1
         if isfile(yml_path):
             with open(yml_path, encoding="utf-8") as stream:
@@ -722,6 +730,7 @@ async def load_yml_into_cm_legacy(yml_path: str, template_file_path: str, cm: Di
 
         with open(template_file_path, "r", encoding="utf-8") as template_fd:
             template_data = yaml_parser.load(template_fd)
+            # 模板文件的版本
             template_version = template_data.get("template_version", 0)
 
         for key in template_data:
@@ -755,10 +764,13 @@ async def load_yml_into_cm_legacy(yml_path: str, template_file_path: str, cm: Di
         if conf_version < template_version:
             # delete old config file
             if isfile(yml_path):
+                # os.unlink()方法是Python中用于删除文件的函数。它接受一个文件路径作为参数，并尝试删除该路径指定的文件。
                 unlink(yml_path)
             # copy the new file template
+            # shutil.copy()方法是Python标准库shutil中的一个函数，用于复制文件或目录。它接受两个参数：源路径和目标路径，将源文件或目录复制到目标位置。
             shutil.copy(template_file_path, yml_path)
             # save the old variables into the new config file
+            # 将 cm 中配置项的值尽可能的回写到新创建的用户本地的配置文件中
             save_to_yml_legacy(yml_path, cm)
     except Exception as e:
         logging.getLogger().error("Error loading configs. Your config file may be corrupt. %s" % (e,), exc_info=True)
@@ -790,6 +802,7 @@ async def refresh_trade_fees_config(client_config_map: ClientConfigAdapter):
     save_to_yml_legacy(str(TRADE_FEES_CONFIG_PATH), fee_overrides_config_map)
 
 
+# 将 cm 中的配置项依次回写到 yml_path 对应的配置文件中
 def save_to_yml_legacy(yml_path: str, cm: Dict[str, ConfigVar]):
     """
     Write current config saved a single config map into each a single yml file
