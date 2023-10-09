@@ -498,6 +498,7 @@ def get_connector_class(connector_name: str) -> Callable:
     return getattr(mod, conn_setting.class_name())
 
 
+# 获取策略的配置项，也就是 Model
 def get_strategy_config_map(strategy: str) -> Optional[Union[ClientConfigAdapter, Dict[str, ConfigVar]]]:
     """
     Given the name of a strategy, find and load strategy-specific config map.
@@ -566,6 +567,7 @@ def read_yml_file(yml_path: Path) -> Dict[str, Any]:
 def get_strategy_pydantic_config_cls(strategy_name: str) -> Optional[ModelMetaclass]:
     pydantic_cm_class = None
     try:
+        # Todo 有的策略中，没有以 _pydantic 结尾的文件，此时会返回 None ，有这种文件的策略和没有这种文件的策略有什么区别？
         pydantic_cm_pkg = f"{strategy_name}_config_map_pydantic"
         pydantic_cm_path = root_path() / "hummingbot" / "strategy" / strategy_name / f"{pydantic_cm_pkg}.py"
         if pydantic_cm_path.exists():
@@ -579,10 +581,14 @@ def get_strategy_pydantic_config_cls(strategy_name: str) -> Optional[ModelMetacl
     return pydantic_cm_class
 
 
+# 加载策略配置到模型对象中
 async def load_strategy_config_map_from_file(yml_path: Path) -> Union[ClientConfigAdapter, Dict[str, ConfigVar]]:
+    # 策略名
     strategy_name = strategy_name_from_file(yml_path)
+    # 这里获取的是策略配置文件的 Model
     config_cls = get_strategy_pydantic_config_cls(strategy_name)
-    if config_cls is None:  # legacy
+    # config_map 是策略配置的模型对象
+    if config_cls is None:  # legacy，如果 config_cls 为 None ，则会做降级处理
         config_map = get_strategy_config_map(strategy_name)
         template_path = get_strategy_template_path(strategy_name)
         await load_yml_into_cm_legacy(str(yml_path), str(template_path), config_map)

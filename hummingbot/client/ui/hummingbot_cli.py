@@ -49,6 +49,7 @@ def _handle_exception_patch(self, loop, context):
 
 Application._handle_exception = _handle_exception_patch
 
+
 # 主要用来管理 UI 的渲染、用户输入命令的处理以及交易的监控，监控交易也是为了渲染交易的信息
 class HummingbotCLI(PubSub):
     def __init__(
@@ -82,6 +83,8 @@ class HummingbotCLI(PubSub):
         self.process_usage = create_process_monitor()
         # Bottom navigation bar 左侧的交易监控
         self.trade_monitor = create_trade_monitor()
+        # layout 是页面渲染的实例
+        # layout_components 是页面渲染的所有区域的字典对象
         self.layout, self.layout_components = generate_layout(
             self.input_field,
             self.output_field,
@@ -110,6 +113,8 @@ class HummingbotCLI(PubSub):
         self.hide_input = False
 
         # stdout redirection stack
+        # _stdout_redirect_context 的作用是用于重定向标准输出（stdout）以捕获和显示应用程序的日志信息。
+        # ExitStack 是一个上下文管理器
         self._stdout_redirect_context: ExitStack = ExitStack()
 
         # start ui tasks
@@ -123,6 +128,8 @@ class HummingbotCLI(PubSub):
         loop.create_task(start_trade_monitor(self.trade_monitor))
 
     def did_start_ui(self):
+        # 通过 enter_context 方法，将一个名为 patch_stdout 的上下文管理器（这个上下文管理器的作用是重定向 stdout）添加到 _stdout_redirect_context 中，使其生效。
+        # 这样，所有写入 stdout 的内容都会被重定向到日志输出区域 log_field 中。
         self._stdout_redirect_context.enter_context(patch_stdout(log_field=self.log_field))
 
         log_level = self.client_config_map.log_level
@@ -139,7 +146,9 @@ class HummingbotCLI(PubSub):
             mouse_support=True,
             clipboard=PyperclipClipboard(),
         )
+        # pre_run 参数用于设置在异步事件循环运行之前要执行的函数。这个函数将在异步事件循环启动之前被调用，通常用于执行一些初始化或预处理工作。
         await self.app.run_async(pre_run=self.did_start_ui)
+        # self._stdout_redirect_context.close() 不会等待用户界面运行结束，但它可能会等待在 self.did_start_ui() 中启动的任务完成后才继续执行。
         self._stdout_redirect_context.close()
 
     def accept(self, buff):

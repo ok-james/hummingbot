@@ -77,11 +77,11 @@ def autofix_permissions(user_group_spec: str):
     # os.path.realpath() 获取绝对路径，所以这里是获取根目录的绝对路径
     project_home: str = os.path.realpath(os.path.join(__file__, "../../"))
 
-    '''
+    """
     1. Path.home() 是一个方法，用于获取当前用户的主目录路径。这通常是用户的个人文件和配置存储的位置。
     2. .joinpath(".hummingbot-gateway") 是使用 Path 对象的方法，用于将当前用户的主目录路径与一个相对路径（这里是 ".hummingbot-gateway"）连接起来，以创建一个新的 Path 对象。
     3. .as_posix() 方法用于将 Path 对象转换为字符串形式，以确保 gateway_path 是一个字符串而不是 Path 对象。
-    '''
+    """
     gateway_path: str = Path.home().joinpath(".hummingbot-gateway").as_posix()
     subprocess.run(
         f"cd '{project_home}' && " f"sudo chown -R {user_group_spec} conf/ data/ logs/ scripts/ {gateway_path}",
@@ -119,14 +119,19 @@ async def quick_start(args: argparse.Namespace, secrets_manager: BaseSecretsMana
     hb = HummingbotApplication.main_application(client_config_map=client_config_map)
     # Todo: validate strategy and config_file_name before assinging
 
+    # 老版本的策略配置文件解析得到的策略
     strategy_config = None
+    # 是否是新版本的 script
     is_script = False
     if config_file_name is not None:
+        # 要特别关注这个赋值操作，可以看一下 HummingbotApplication 的 strategy_file_name 赋值处理函数
         hb.strategy_file_name = config_file_name
+        # 如果以 .py 结尾，则是 script
         if config_file_name.split(".")[-1] == "py":
             hb.strategy_name = hb.strategy_file_name
             is_script = True
-        else:
+        else:  # 否则是老版本的策略
+            # 策略配置
             strategy_config = await load_strategy_config_map_from_file(STRATEGIES_CONF_DIR_PATH / config_file_name)
             hb.strategy_name = (
                 strategy_config.strategy
@@ -135,6 +140,7 @@ async def quick_start(args: argparse.Namespace, secrets_manager: BaseSecretsMana
             )
             hb.strategy_config_map = strategy_config
 
+    # Todo 作用是什么
     if strategy_config is not None:
         if not all_configs_complete(strategy_config, hb.client_config_map):
             hb.status()
@@ -142,6 +148,7 @@ async def quick_start(args: argparse.Namespace, secrets_manager: BaseSecretsMana
     # The listener needs to have a named variable for keeping reference, since the event listener system
     # uses weak references to remove unneeded listeners.
     start_listener: UIStartListener = UIStartListener(hb, is_script=is_script, is_quickstart=True)
+    # 监听 start 事件
     hb.app.add_listener(HummingbotUIEvent.Start, start_listener)
 
     tasks: List[Coroutine] = [hb.run()]

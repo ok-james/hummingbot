@@ -80,9 +80,12 @@ class HummingbotApplication(*commands):
         TradingPairFetcher.get_instance(self.client_config_map)
         self.ev_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
         self.markets: Dict[str, ExchangeBase] = {}
-        # strategy file name and name get assigned value after import or create command
+        # strategy file name and name get assigned value after import or create command，"策略文件名" 和 "名称" 在导入或创建命令之后获得赋值。
+        # 策略文件的名字，可能是老版本的策略文件，也可能是新版本的 script
         self._strategy_file_name: Optional[str] = None
+        # 策略的名字，如果是老版本的策略文件，则是策略的名字，如果是新版本的 script ，则与 _strategy_file_name 相同，就是 script 脚本的名字
         self.strategy_name: Optional[str] = None
+        # 策略的配置，如果是老版本的策略文件，则是策略的配置信息，如果是新版本的 script ，则是 None
         self._strategy_config_map: Optional[BaseStrategyConfigMap] = None
         # 当前正在运行的策略任务
         self.strategy_task: Optional[asyncio.Task] = None

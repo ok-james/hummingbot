@@ -27,10 +27,14 @@ from hummingbot.core.utils.async_utils import safe_gather
 class UIStartListener(EventListener):
     def __init__(self, hummingbot_app: HummingbotApplication, is_script: Optional[bool] = False, is_quickstart: Optional[bool] = False):
         super().__init__()
+        # hummingbot_application.py 中的 HummingbotApplication 实例
         self._hb_ref: ReferenceType = ref(hummingbot_app)
+        # 是否是新版本的 script
         self._is_script = is_script
+        # 是否是从 hummingbot_quickstart.py 启动
         self._is_quickstart = is_quickstart
 
+    # 类上的 __call__ 方法允许你将实例化的类对象当作函数来调用
     def __call__(self, _):
         asyncio.create_task(self.ui_start_handler())
 
