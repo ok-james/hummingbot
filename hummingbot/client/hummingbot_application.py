@@ -73,9 +73,7 @@ class HummingbotApplication(*commands):
         self.client_config_map: Union[ClientConfigMap, ClientConfigAdapter] = (  # type-hint enables IDE auto-complete
             client_config_map or load_client_config_map_from_file()
         )
-        self.ssl_config_map: SSLConfigMap = (  # type-hint enables IDE auto-complete
-            load_ssl_config_map_from_file()
-        )
+        self.ssl_config_map: SSLConfigMap = load_ssl_config_map_from_file()  # type-hint enables IDE auto-complete
         # This is to start fetching trading pairs for auto-complete
         TradingPairFetcher.get_instance(self.client_config_map)
         self.ev_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
@@ -83,7 +81,7 @@ class HummingbotApplication(*commands):
         # strategy file name and name get assigned value after import or create command，"策略文件名" 和 "名称" 在导入或创建命令之后获得赋值。
         # 策略文件的名字，可能是老版本的策略文件，也可能是新版本的 script
         self._strategy_file_name: Optional[str] = None
-        # 策略的名字，如果是老版本的策略文件，则是策略的名字，如果是新版本的 script ，则与 _strategy_file_name 相同，就是 script 脚本的名字
+        # 策略的名字，如果是老版本的策略文件，则是策略的名字，如果是新版本的 script ，则与 _strategy_file_name 相同，就是 script 脚本文件的名字
         self.strategy_name: Optional[str] = None
         # 策略的配置，如果是老版本的策略文件，则是策略的配置信息，如果是新版本的 script ，则是 None
         self._strategy_config_map: Optional[BaseStrategyConfigMap] = None
@@ -125,7 +123,7 @@ class HummingbotApplication(*commands):
             input_handler=self._handle_command,
             bindings=load_key_bindings(self),
             completer=load_completer(self),
-            command_tabs=command_tabs
+            command_tabs=command_tabs,
         )
 
         self._init_gateway_monitor()
@@ -150,9 +148,7 @@ class HummingbotApplication(*commands):
         self._strategy_file_name = value
         if value is not None:
             db_name = value.split(".")[0]
-            self.trade_fill_db = SQLConnectionManager.get_trade_fills_instance(
-                self.client_config_map, db_name
-            )
+            self.trade_fill_db = SQLConnectionManager.get_trade_fills_instance(self.client_config_map, db_name)
         else:
             self.trade_fill_db = None
 
@@ -203,12 +199,12 @@ class HummingbotApplication(*commands):
                 for output_cmd in shortcut.output:
                     final_cmd = output_cmd
                     for i in range(1, num_shortcut_args + 1):
-                        final_cmd = final_cmd.replace(f'${i}', command_split[i])
+                        final_cmd = final_cmd.replace(f"${i}", command_split[i])
                     if verbose is True:
-                        self.notify(f'  >>> {final_cmd}')
+                        self.notify(f"  >>> {final_cmd}")
                     self._handle_command(final_cmd)
             else:
-                self.notify('Invalid number of arguments for shortcut')
+                self.notify("Invalid number of arguments for shortcut")
             return True
         return False
 
@@ -264,10 +260,10 @@ class HummingbotApplication(*commands):
                 if len(uncancelled) > 0:
                     success = False
                     uncancelled_order_ids = list(map(lambda cr: cr.order_id, uncancelled))
-                    self.notify("\nFailed to cancel the following orders on %s:\n%s" % (
-                        market_name,
-                        '\n'.join(uncancelled_order_ids)
-                    ))
+                    self.notify(
+                        "\nFailed to cancel the following orders on %s:\n%s"
+                        % (market_name, "\n".join(uncancelled_order_ids))
+                    )
         except Exception:
             self.logger().error("Error canceling outstanding orders.", exc_info=True)
             success = False
@@ -288,7 +284,7 @@ class HummingbotApplication(*commands):
 
     @staticmethod
     def _initialize_market_assets(market_name: str, trading_pairs: List[str]) -> List[Tuple[str, str]]:
-        market_trading_pairs: List[Tuple[str, str]] = [(trading_pair.split('-')) for trading_pair in trading_pairs]
+        market_trading_pairs: List[Tuple[str, str]] = [(trading_pair.split("-")) for trading_pair in trading_pairs]
         return market_trading_pairs
 
     def _initialize_markets(self, market_names: List[Tuple[str, List[str]]]):
@@ -336,7 +332,8 @@ class HummingbotApplication(*commands):
     def _initialize_notifiers(self):
         self.notifiers.extend(
             [
-                notifier for notifier in self.client_config_map.telegram_mode.get_notifiers(self)
+                notifier
+                for notifier in self.client_config_map.telegram_mode.get_notifiers(self)
                 if notifier not in self.notifiers
             ]
         )

@@ -28,6 +28,7 @@ class UIStartListener(EventListener):
     def __init__(self, hummingbot_app: HummingbotApplication, is_script: Optional[bool] = False, is_quickstart: Optional[bool] = False):
         super().__init__()
         # hummingbot_application.py 中的 HummingbotApplication 实例
+        # ref 是创建弱引用
         self._hb_ref: ReferenceType = ref(hummingbot_app)
         # 是否是新版本的 script
         self._is_script = is_script

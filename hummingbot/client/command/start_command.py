@@ -61,6 +61,7 @@ class StartCommand(GatewayChainApiManager):
               script: Optional[str] = None,
               is_quickstart: Optional[bool] = False):
         if threading.current_thread() != threading.main_thread():
+            # call_soon_threadsafe 方法是 asyncio 提供的机制，用于安全地在多线程环境中调度异步任务，确保异步操作的正确执行。
             self.ev_loop.call_soon_threadsafe(self.start, log_level, script)
             return
         safe_ensure_future(self.start_check(log_level, script, is_quickstart), loop=self.ev_loop)
@@ -84,6 +85,7 @@ class StartCommand(GatewayChainApiManager):
                 self._in_start_check = False
                 return
 
+        # Todo 这段之后再研究
         if self.strategy_file_name and self.strategy_name and is_quickstart:
             if self._strategy_uses_gateway_connector(settings.required_exchanges):
                 try:
