@@ -105,7 +105,7 @@ async def quick_start(args: argparse.Namespace, secrets_manager: BaseSecretsMana
         logging.getLogger().error("Invalid password.")
         return
 
-    # 等待所有本地的交易所配置都解析完成
+    # 等待所有本地的交易所 secret key 配置都解析完成
     await Security.wait_til_decryption_done()
     await create_yml_files_legacy()
     # 初始化日志配置文件

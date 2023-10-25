@@ -47,7 +47,9 @@ class TradeFeeSchema:
     costs, and `buy_percent_fee_deducted_from_returns` cannot be set to `True`.
     """
     percent_fee_token: Optional[str] = None
+    # maker 的手续费，百分数的真实表示，比如，假设手续费是 0.1%，那么这里就是 0.001
     maker_percent_fee_decimal: Decimal = S_DECIMAL_0
+    # taker 的手续费，同上
     taker_percent_fee_decimal: Decimal = S_DECIMAL_0
     buy_percent_fee_deducted_from_returns: bool = False
     maker_fixed_fees: List[TokenAmount] = field(default_factory=list)

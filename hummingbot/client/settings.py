@@ -69,6 +69,7 @@ class ConnectorType(Enum):
     """
     The types of exchanges that hummingbot client can communicate with.
     """
+
     # Todo 不同交易所类型之间有什么区别
     AMM = "AMM"
     AMM_LP = "AMM_LP"
@@ -108,9 +109,7 @@ class GatewayConnectionSetting:
         connector: Optional[Dict[str, str]] = None
         connector_config: List[Dict[str, str]] = GatewayConnectionSetting.load()
         for spec in connector_config:
-            if spec["connector"] == connector_name \
-               and spec["chain"] == chain \
-               and spec["network"] == network:
+            if spec["connector"] == connector_name and spec["chain"] == chain and spec["network"] == network:
                 connector = spec
 
         return connector
@@ -158,14 +157,18 @@ class GatewayConnectionSetting:
 
     @staticmethod
     def upsert_connector_spec_tokens(connector_chain_network: str, tokens: List[str]):
-        updated_connector: Optional[Dict[str, Any]] = GatewayConnectionSetting.get_connector_spec_from_market_name(connector_chain_network)
-        updated_connector['tokens'] = tokens
+        updated_connector: Optional[Dict[str, Any]] = GatewayConnectionSetting.get_connector_spec_from_market_name(
+            connector_chain_network
+        )
+        updated_connector["tokens"] = tokens
 
         connectors_conf: List[Dict[str, str]] = GatewayConnectionSetting.load()
         for i, c in enumerate(connectors_conf):
-            if c["connector"] == updated_connector['connector'] \
-               and c["chain"] == updated_connector['chain'] \
-               and c["network"] == updated_connector['network']:
+            if (
+                c["connector"] == updated_connector["connector"]
+                and c["chain"] == updated_connector["chain"]
+                and c["network"] == updated_connector["network"]
+            ):
                 connectors_conf[i] = updated_connector
                 break
 
@@ -179,22 +182,26 @@ class ConnectorSetting(NamedTuple):
     type: ConnectorType
     # Todo 估计是实例的交易对，但是具体作用是什么，有待研究
     example_pair: str
-    # Todo 作用有待研究
+    # Todo 作用有待研究，猜测：是否是中心化交易所
     centralised: bool
+    # Todo 作用有待研究
     use_ethereum_wallet: bool
+    # 费率信息
     trade_fee_schema: TradeFeeSchema
+    # 交易所 secret key 的配置信息
     config_keys: Optional["BaseConnectorConfigMap"]
     # 是否是通过 OTHER_DOMAINS 生成的交易所设置，如果是，则为 True ，反之为 False
     is_sub_domain: bool
-    '''
+    """
     父交易所，一般有两种情况会设置父交易所：
     1. 在交易所代码的 xxx_utils.py 里配置了 OTHER_DOMAINS 的话，会在生成 OTHER_DOMAINS 内的交易所设置时设置父交易所，可以看一下 binance 交易所代码中的相关配置
     2. paper 交易所，会设置父交易所
     说白了，配置父交易所，就是要用父交易所的一些设置，比如获取交易所的交易对时，就可以直接用父交易所的能力
-    '''
+    """
     parent_name: Optional[str]
     # Todo 通过 OTHER_DOMAINS_PARAMETER 中的配置得到的，会作为实例化交易所实例的 domain 入参，但是这个 domain 入参在交易所实例中的作用未知
     domain_parameter: Optional[str]
+    # Todo 作用有待研究
     use_eth_gas_lookup: bool
     """
     This class has metadata data about Exchange connections. The name of the connection and the file path location of
@@ -210,13 +217,12 @@ class ConnectorSetting(NamedTuple):
 
     def module_name(self) -> str:
         # returns connector module name, e.g. binance_exchange
-        # Todo 这块 gateway 的逻辑暂时不研究
         if self.uses_gateway_generic_connector():
-            if 'AMM' in self.type.name:
+            if "AMM" in self.type.name:
                 # AMMs currently have multiple generic connectors. chain_type is used to determine the right connector to use.
                 connector_spec: Dict[str, str] = GatewayConnectionSetting.get_connector_spec_from_market_name(self.name)
                 return f"gateway.{self.type.name.lower()}.gateway_{connector_spec['chain_type'].lower()}_{self._get_module_package()}"
-            elif 'CLOB' in self.type.name:
+            elif "CLOB" in self.type.name:
                 return f"gateway.{self.type.name.lower()}.gateway_{self._get_module_package()}"
             else:
                 raise ValueError(f"Unsupported connector type: {self.type}")
@@ -234,12 +240,11 @@ class ConnectorSetting(NamedTuple):
     # 获取交易所模块中导出的类
     def class_name(self) -> str:
         # return connector class name, e.g. BinanceExchange
-        # Todo 暂不研究 gateway
         if self.uses_gateway_generic_connector():
-            file_name = self.module_name().split('.')[-1]
-            splited_name = file_name.split('_')
+            file_name = self.module_name().split(".")[-1]
+            splited_name = file_name.split("_")
             for i in range(len(splited_name)):
-                if splited_name[i] in ['evm', 'amm', 'clob', 'lp', 'sol', 'spot']:
+                if splited_name[i] in ["evm", "amm", "clob", "lp", "sol", "spot"]:
                     splited_name[i] = splited_name[i].upper()
                 else:
                     splited_name[i] = splited_name[i].capitalize()
@@ -274,7 +279,6 @@ class ConnectorSetting(NamedTuple):
     ) -> Dict[str, Any]:
         trading_pairs = trading_pairs or []
         api_keys = api_keys or {}
-        # Todo 代码先不关注
         if self.uses_gateway_generic_connector():  # init parameters for gateway connectors
             params = {}
             if self.config_keys is not None:
@@ -286,8 +290,11 @@ class ConnectorSetting(NamedTuple):
                 network=connector_spec["network"],
                 address=connector_spec["wallet_address"],
             )
+
+            # 如果是 AMM 类
             if not self.uses_clob_connector():
                 params["additional_spenders"] = connector_spec.get("additional_spenders", [])
+            # 如果是 CLOB 类
             if self.uses_clob_connector():
                 params["api_data_source"] = self._load_clob_api_data_source(
                     trading_pairs=trading_pairs,
@@ -296,7 +303,7 @@ class ConnectorSetting(NamedTuple):
                     connector_spec=connector_spec,
                 )
         elif not self.is_sub_domain:
-            # 如果不是子域名，则是 paper ，使用与父交易所相同的 api_keys 即可
+            # 如果不是子域名，则是 普通交易所或者paper ， paper 会使用与父交易所相同的 api_keys 
             params = api_keys
         else:
             # 是子域名，需要将 api_keys 中的子域名的名字替换为父交易所的名字
@@ -306,10 +313,12 @@ class ConnectorSetting(NamedTuple):
         params["trading_pairs"] = trading_pairs
         params["trading_required"] = trading_required
         params["client_config_map"] = client_config_map
-        if (self.config_keys is not None
-                and type(self.config_keys) is not dict
-                and "receive_connector_configuration" in self.config_keys.__fields__
-                and self.config_keys.receive_connector_configuration):
+        if (
+            self.config_keys is not None
+            and type(self.config_keys) is not dict
+            and "receive_connector_configuration" in self.config_keys.__fields__
+            and self.config_keys.receive_connector_configuration
+        ):
             params["connector_configuration"] = self.config_keys
 
         return params
@@ -329,8 +338,8 @@ class ConnectorSetting(NamedTuple):
 
     # 创建一个没有交易功能的ConnectorBase实例，并使用默认配置进行初始化。
     def non_trading_connector_instance_with_default_configuration(
-            self,
-            trading_pairs: Optional[List[str]] = None) -> 'ConnectorBase':
+        self, trading_pairs: Optional[List[str]] = None
+    ) -> "ConnectorBase":
         from hummingbot.client.config.config_helpers import ClientConfigAdapter
         from hummingbot.client.hummingbot_application import HummingbotApplication
 
@@ -343,13 +352,12 @@ class ConnectorSetting(NamedTuple):
         if isinstance(self.config_keys, Dict):
             kwargs = {key: (config.value or "") for key, config in self.config_keys.items()}  # legacy
         elif self.config_keys is not None:
-            # Todo 下面的代码暂不研究，直到是在做什么的就行了，先忽略细节
+            # 新版会把密钥信息给加密
             kwargs = {
                 traverse_item.attr: traverse_item.value.get_secret_value()
                 if isinstance(traverse_item.value, SecretStr)
                 else traverse_item.value or ""
-                for traverse_item
-                in ClientConfigAdapter(self.config_keys).traverse()
+                for traverse_item in ClientConfigAdapter(self.config_keys).traverse()
                 if traverse_item.attr != "connector"
             }
         kwargs = self.conn_init_parameters(
@@ -403,16 +411,16 @@ class AllConnectorSettings:
         connector_exceptions = ["mock_paper_exchange", "mock_pure_python_paper_exchange", "paper_trade"]
 
         type_dirs: List[DirEntry] = [
-            cast(DirEntry, f) for f in scandir(f"{root_path() / 'hummingbot' / 'connector'}")
+            cast(DirEntry, f)
+            for f in scandir(f"{root_path() / 'hummingbot' / 'connector'}")
             if f.is_dir() and f.name not in CONNECTOR_SUBMODULES_THAT_ARE_NOT_CEX_TYPES
         ]
         for type_dir in type_dirs:
-            if type_dir.name == 'gateway':
+            if type_dir.name == "gateway":
                 continue
             # 是 hummingbot/connector/exchange/binance 、 hummingbot/connector/exchange/bybit 这一级目录的列表
             connector_dirs: List[DirEntry] = [
-                cast(DirEntry, f) for f in scandir(type_dir.path)
-                if f.is_dir() and exists(join(f.path, "__init__.py"))
+                cast(DirEntry, f) for f in scandir(type_dir.path) if f.is_dir() and exists(join(f.path, "__init__.py"))
             ]
             for connector_dir in connector_dirs:
                 if connector_dir.name.startswith("_") or connector_dir.name in connector_exceptions:
@@ -420,8 +428,9 @@ class AllConnectorSettings:
                 if connector_dir.name in cls.all_connector_settings:
                     raise Exception(f"Multiple connectors with the same {connector_dir.name} name.")
                 try:
-                    util_module_path: str = f"hummingbot.connector.{type_dir.name}." \
-                                            f"{connector_dir.name}.{connector_dir.name}_utils"
+                    util_module_path: str = (
+                        f"hummingbot.connector.{type_dir.name}." f"{connector_dir.name}.{connector_dir.name}_utils"
+                    )
                     # importlib.import_module：运行时动态加载模块
                     util_module = importlib.import_module(util_module_path)
                 except ModuleNotFoundError:
@@ -464,8 +473,9 @@ class AllConnectorSettings:
                     )
 
         # add gateway connectors
-        '''
-        Hummingbot 的 "gateway" 是指连接到不同加密货币交易所的接口，它充当了 Hummingbot 与交易所之间的桥梁，使 Hummingbot 能够与各种不同的交易所进行交互。这个功能对于创建和管理交易机器人非常重要，因为不同的交易所可能有不同的API、安全性要求和数据格式，而 Hummingbot 的 gateway 为用户提供了一个统一的方式来与这些交易所进行通信。
+        """
+        Hummingbot 的 "gateway" 是指连接到不同加密货币交易所的接口，它充当了 Hummingbot 与交易所之间的桥梁，使 Hummingbot 能够与各种不同的交易所进行交互。
+        这个功能对于创建和管理交易机器人非常重要，因为不同的交易所可能有不同的API、安全性要求和数据格式，而 Hummingbot 的 gateway 为用户提供了一个统一的方式来与这些交易所进行通信。
 
         具体来说，Hummingbot 的 gateway 主要执行以下任务：
 
@@ -476,7 +486,7 @@ class AllConnectorSettings:
         5. 错误处理和安全性：gateway 处理与交易所通信时可能出现的错误，同时确保交易所API的安全性，以防止未经授权的访问。
 
         总之，Hummingbot 的 gateway 是一个重要的组件，使用户能够轻松地在多个不同的加密货币交易所上运行交易策略，从而实现自动化的加密货币交易。
-        '''
+        """
         gateway_connections_conf: List[Dict[str, str]] = GatewayConnectionSetting.load()
         trade_fee_settings: List[float] = [0.0, 0.0]  # we assume no swap fees for now
         trade_fee_schema: TradeFeeSchema = cls._validate_trade_fee_schema("gateway", trade_fee_settings)
@@ -525,7 +535,7 @@ class AllConnectorSettings:
             cls.all_connector_settings = cls.create_connector_settings()
         return cls.all_connector_settings
 
-    # 获取 connector 对应的交易所的配置项的信息
+    # 获取 connector 对应的交易所的 secret key 配置项的信息
     @classmethod
     def get_connector_config_keys(cls, connector: str) -> Optional["BaseConnectorConfigMap"]:
         return cls.get_connector_settings()[connector].config_keys
@@ -534,9 +544,7 @@ class AllConnectorSettings:
     def reset_connector_config_keys(cls, connector: str):
         current_settings = cls.get_connector_settings()[connector]
         current_keys = current_settings.config_keys
-        new_keys = (
-            current_keys if current_keys is None else current_keys.__class__.construct()
-        )
+        new_keys = current_keys if current_keys is None else current_keys.__class__.construct()
         cls.update_connector_config_keys(new_keys)
 
     @classmethod
@@ -544,20 +552,23 @@ class AllConnectorSettings:
         current_settings = cls.get_connector_settings()[new_config_keys.connector]
         new_keys_settings_dict = current_settings._asdict()
         new_keys_settings_dict.update({"config_keys": new_config_keys})
-        cls.get_connector_settings()[new_config_keys.connector] = ConnectorSetting(
-            **new_keys_settings_dict
-        )
+        cls.get_connector_settings()[new_config_keys.connector] = ConnectorSetting(**new_keys_settings_dict)
 
     @classmethod
     def get_exchange_names(cls) -> Set[str]:
         return {
-            cs.name for cs in cls.get_connector_settings().values()
+            cs.name
+            for cs in cls.get_connector_settings().values()
             if cs.type in [ConnectorType.Exchange, ConnectorType.CLOB_SPOT, ConnectorType.CLOB_PERP]
         }.union(set(PAPER_TRADE_EXCHANGES))
 
     @classmethod
     def get_derivative_names(cls) -> Set[str]:
-        return {cs.name for cs in cls.all_connector_settings.values() if cs.type in [ConnectorType.Derivative, ConnectorType.AMM_Perpetual, ConnectorType.CLOB_PERP]}
+        return {
+            cs.name
+            for cs in cls.all_connector_settings.values()
+            if cs.type in [ConnectorType.Derivative, ConnectorType.AMM_Perpetual, ConnectorType.CLOB_PERP]
+        }
 
     @classmethod
     def get_derivative_dex_names(cls) -> Set[str]:
@@ -581,10 +592,7 @@ class AllConnectorSettings:
 
     @classmethod
     def get_gateway_clob_connector_names(cls) -> Set[str]:
-        return {
-            cs.name for cs in cls.all_connector_settings.values()
-            if cs.type == ConnectorType.CLOB_SPOT
-        }
+        return {cs.name for cs in cls.all_connector_settings.values() if cs.type == ConnectorType.CLOB_SPOT}
 
     @classmethod
     def get_example_pairs(cls) -> Dict[str, str]:
@@ -624,8 +632,11 @@ def ethereum_gas_station_required() -> bool:
     """
     Check if the user's config needs to look up gas costs from an Ethereum gas station.
     """
-    return any(name for name, con_set in AllConnectorSettings.get_connector_settings().items() if name in required_exchanges
-               and con_set.use_eth_gas_lookup)
+    return any(
+        name
+        for name, con_set in AllConnectorSettings.get_connector_settings().items()
+        if name in required_exchanges and con_set.use_eth_gas_lookup
+    )
 
 
 def ethereum_required_trading_pairs() -> List[str]:
@@ -645,8 +656,7 @@ def gateway_connector_trading_pairs(connector: str) -> List[str]:
     """
     ret_val = []
     for conn, t_pair in requried_connector_trading_pairs.items():
-        if AllConnectorSettings.get_connector_settings()[conn].uses_gateway_generic_connector() and \
-           conn == connector:
+        if AllConnectorSettings.get_connector_settings()[conn].uses_gateway_generic_connector() and conn == connector:
             ret_val += t_pair
     return ret_val
 

@@ -26,6 +26,7 @@ class Security:
     # 具体的 model 对象，可以到 hummingbot/connector 的子目录下找某个交易所的 xxx_utils.py 文件里的 KEYS 看一下，
     # 这个 KEYS 就是各个交易所自己的 secret key 的配置项模型
     _secure_configs = {}
+    # 用于标记解析交易所配置是否完成
     _decryption_done = asyncio.Event()
 
     @staticmethod
@@ -52,7 +53,7 @@ class Security:
         safe_ensure_future(coro)
         return True
 
-    # 用于解析用户本地配置的所有的交易所的配置信息，注意，是在用户使用时实际配置的交易所，而不是所有支持的交易所
+    # 用于解析用户本地配置的所有交易所的配置信息，注意，是在用户使用时实际配置的交易所，而不是所有支持的交易所
     @classmethod
     def decrypt_all(cls):
         cls._secure_configs.clear()

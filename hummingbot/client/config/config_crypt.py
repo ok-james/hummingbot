@@ -32,6 +32,8 @@ class BaseSecretsManager(ABC):
 
     @property
     def password(self) -> SecretStr:
+        # SecretStr 是 Pydantic 中的一个数据类型，用于表示敏感信息，例如密码、API 密钥等。它继承自 str，并添加了一些额外的验证和安全措施。
+        # https://docs.pydantic.dev/latest/api/types/#pydantic.types.SecretStr
         return SecretStr(self._password)
 
     @abstractmethod

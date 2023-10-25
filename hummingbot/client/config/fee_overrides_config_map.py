@@ -4,6 +4,7 @@ from hummingbot.client.config.config_methods import new_fee_config_var
 from hummingbot.client.config.config_var import ConfigVar
 from hummingbot.client.settings import AllConnectorSettings
 
+# 注意，在初始化的时候，会调用 init_fee_overrides_config() 函数，这个函数会调用 fee_overrides_dict() 函数来设置该变量的值
 fee_overrides_config_map: Dict[str, ConfigVar] = {}
 
 

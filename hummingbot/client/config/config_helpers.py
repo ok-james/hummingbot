@@ -109,9 +109,12 @@ class ClientConfigAdapter:
 
     def __setattr__(self, key, value):
         if key == "_hb_config":
+            # 虽然这个类没有显式继承自任何父类，但在 Python 中，所有类都隐式继承自一个通用的基类（通常是 object 类）。
+            # 所以这里的 super() 实际上是调用了 object 类的 __setattr__ 方法，也就是直接赋值操作。
             super().__setattr__(key, value)
         else:
             try:
+                # 对于类上的属性，不能通过 self[key] = value 的方式来赋值，而需要使用 setattr(self, key, value) 的方式 ，或者像下面的代码一样，直接调用 __setattr__ 方法
                 self._hb_config.__setattr__(key, value)
             except ValidationError as e:
                 raise ConfigValidationError(retrieve_validation_error_msg(e))
@@ -242,15 +245,19 @@ class ClientConfigAdapter:
         return validation_errors
 
     def setattr_no_validation(self, attr: str, value: Any):
+        # 进入 with 语句块时，上下文管理器的 __enter__ 方法被调用，退出 with 语句块时，上下文管理器的 __exit__ 方法被调用
         with self._disable_validation():
             setattr(self, attr, value)
 
     def full_copy(self):
         return self.__class__(hb_config=self._hb_config.copy(deep=True))
 
+    # @contextlib.contextmanager 用于创建一个上下文管理器，这个上下文管理器能够保证在任何情况下都能正常的进入和退出上下文
     @contextlib.contextmanager
     def _disable_validation(self):
         self._hb_config.Config.validate_assignment = False
+        # 在进入上下文之前，先将 validate_assignment 设置为 False，然后在退出上下文时，再将 validate_assignment 设置为 True，
+        # yield 标志着上下文管理器的分界点。在 yield 语句之前的代码是在进入上下文时执行的，用于准备上下文环境，在 yield 语句之后的代码是在退出上下文时执行的，用于清理和恢复上下文环境
         yield
         self._hb_config.Config.validate_assignment = True
 
@@ -624,7 +631,7 @@ def load_client_config_map_from_file() -> ClientConfigAdapter:
     if len(config_validation_errors) > 0:
         all_errors = "\n".join(config_validation_errors)
         raise ConfigValidationError(f"There are errors in the client global configuration (\n{all_errors})")
-    # 将缺失的一些配置项在配置文件中补齐
+
     save_to_yml(yml_path, config_map)
 
     return config_map
@@ -679,7 +686,7 @@ def get_connector_config_yml_path(connector_name: str) -> Path:
 
 def list_connector_configs() -> List[Path]:
     connector_configs = [
-        # scandir 用于遍历目录中的所有文件，包括目录和子目录，所以这里是获取所有交易所（connectors）的配置文件
+        # scandir 用于遍历目录中的所有文件/目录，但默认不会递归遍历子目录，这里是获取所有交易所（connectors）的配置文件
         Path(f.path)
         for f in scandir(str(CONNECTORS_CONF_DIR_PATH))
         if f.is_file() and not f.name.startswith("_") and not f.name.startswith(".")
@@ -687,6 +694,7 @@ def list_connector_configs() -> List[Path]:
     return connector_configs
 
 
+# 该方法用于将配置项 yml_data 写入 cm 中，并进行校验
 def _load_yml_data_into_map(yml_data: Dict[str, Any], cm: ClientConfigAdapter) -> List[str]:
     for key in cm.keys():
         if key in yml_data:
@@ -828,6 +836,7 @@ def save_to_yml_legacy(yml_path: str, cm: Dict[str, ConfigVar]):
         logging.getLogger().error("Error writing configs: %s" % (str(e),), exc_info=True)
 
 
+# 将 cm 中的配置项回写到 yml_path 对应的配置文件中
 def save_to_yml(yml_path: Path, cm: ClientConfigAdapter):
     try:
         cm_yml_str = cm.generate_yml_output_str_with_comments()
