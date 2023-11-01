@@ -34,8 +34,10 @@ class GatewayStatusMonitor:
 
     def __init__(self, app: "HummingbotApplication"):
         self._app = app
+        # 记录网关的当前状态
         self._gateway_status = GatewayStatus.OFFLINE
         self._monitor_task = None
+        # 存放的是网关的配置项的 key 的列表
         self._gateway_config_keys: List[str] = []
         self._gateway_ready_event: asyncio.Event = asyncio.Event()
 
@@ -85,11 +87,16 @@ class GatewayStatusMonitor:
         while True:
             try:
                 gateway_http_client = self._get_gateway_instance()
+                # 如果协程在指定的超时时间内成功完成，asyncio.wait_for 方法会返回协程的返回值。这意味着它将等待协程完成并返回结果。
+                # 只有当超时发生时，它才会引发 asyncio.TimeoutError 异常。
+                # 所以，这里是 ping 一下网关，检查网关是否在线
                 if await asyncio.wait_for(gateway_http_client.ping_gateway(), timeout=POLL_TIMEOUT):
                     if self.gateway_status is GatewayStatus.OFFLINE:
                         gateway_connectors = await gateway_http_client.get_connectors(fail_silently=True)
                         GATEWAY_CONNECTORS.clear()
-                        GATEWAY_CONNECTORS.extend([connector["name"] for connector in gateway_connectors.get("connectors", [])])
+                        GATEWAY_CONNECTORS.extend(
+                            [connector["name"] for connector in gateway_connectors.get("connectors", [])]
+                        )
                         await self.update_gateway_config_key_list()
 
                     self._gateway_status = GatewayStatus.ONLINE
@@ -127,8 +134,9 @@ class GatewayStatusMonitor:
             self.gateway_config_keys = config_list
             self._app.app.input_field.completer = load_completer(self._app)
         except Exception:
-            self.logger().error("Error fetching gateway configs. Please check that Gateway service is online. ",
-                                exc_info=True)
+            self.logger().error(
+                "Error fetching gateway configs. Please check that Gateway service is online. ", exc_info=True
+            )
 
     def _get_gateway_instance(self) -> GatewayHttpClient:
         gateway_instance = GatewayHttpClient.get_instance(self._app.client_config_map)

@@ -131,7 +131,7 @@ async def quick_start(args: argparse.Namespace, secrets_manager: BaseSecretsMana
             hb.strategy_name = hb.strategy_file_name
             is_script = True
         else:  # 否则是老版本的策略
-            # 策略配置
+            # 解析策略配置
             strategy_config = await load_strategy_config_map_from_file(STRATEGIES_CONF_DIR_PATH / config_file_name)
             hb.strategy_name = (
                 strategy_config.strategy

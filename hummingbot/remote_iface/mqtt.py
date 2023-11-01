@@ -592,6 +592,7 @@ class MQTTGateway(Node):
                  hb_app: "HummingbotApplication",
                  *args, **kwargs
                  ):
+        # MQTT 连接是否健康
         self._health = False
         self._initial_connection_succeeded = False
         self._restarting = False
@@ -923,6 +924,9 @@ class MQTTExternalEvents:
         )
         self._topic = f'{topic_prefix}{TopicSpecs.EXTERNAL_EVENTS}'
 
+        # Node 也有一个 create_subscriber 方法，从源码来看，两者的区别是，
+        # 在 on_message 的回调中，是否会返回第二个参数 topic ，如果是 create_subscriber 方法，则不会，
+        # 如果是 create_psubscriber 方法，则会返回 topic
         self._node.create_psubscriber(
             topic=self._topic,
             msg_type=ExternalEventMessage,

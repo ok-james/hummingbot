@@ -574,7 +574,8 @@ def read_yml_file(yml_path: Path) -> Dict[str, Any]:
 def get_strategy_pydantic_config_cls(strategy_name: str) -> Optional[ModelMetaclass]:
     pydantic_cm_class = None
     try:
-        # Todo 有的策略中，没有以 _pydantic 结尾的文件，此时会返回 None ，有这种文件的策略和没有这种文件的策略有什么区别？
+        # 有的策略中，没有以 _pydantic 结尾的文件，此时会返回 None ，有这种文件的策略和没有这种文件的策略有什么区别？
+        # 答：这种策略文件是模型类，用于校验配置文件中的配置项是否符合预期
         pydantic_cm_pkg = f"{strategy_name}_config_map_pydantic"
         pydantic_cm_path = root_path() / "hummingbot" / "strategy" / strategy_name / f"{pydantic_cm_pkg}.py"
         if pydantic_cm_path.exists():
@@ -588,7 +589,7 @@ def get_strategy_pydantic_config_cls(strategy_name: str) -> Optional[ModelMetacl
     return pydantic_cm_class
 
 
-# 加载策略配置到模型对象中
+# 加载老版的策略配置到模型对象中
 async def load_strategy_config_map_from_file(yml_path: Path) -> Union[ClientConfigAdapter, Dict[str, ConfigVar]]:
     # 策略名
     strategy_name = strategy_name_from_file(yml_path)
@@ -725,14 +726,12 @@ async def save_yml_from_dict(yml_path: str, conf_dict: Dict[str, Any]):
         logging.getLogger().error(f"Error writing configs: {str(e)}", exc_info=True)
 
 
-"""
-yml_path：配置文件的路径
-template_file_path：配置文件的模板的路径
-cm：配置对象，配置文件中的每个配置在 cm 中都有一个对应的配置项，可以对配置文件中的内容进行校验，校验通过后，会存储配置文件的内容
-"""
-
-
 async def load_yml_into_cm_legacy(yml_path: str, template_file_path: str, cm: Dict[str, ConfigVar]):
+    """
+    yml_path：配置文件的路径
+    template_file_path：配置文件的模板的路径
+    cm：配置文件中的每个配置在 cm 中都有一个对应的配置项，可以对配置文件中的内容进行校验，校验通过后，会存储配置文件的内容，并且 cm 也是配置内容的存储地
+    """
     try:
         data = {}
         # 配置文件的版本

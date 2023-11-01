@@ -128,6 +128,7 @@ def build_config_dict_display(lines: List[str], config_dict: Dict[str, Any], lev
             lines.append(f"{prefix}{k}: {v}")
 
 
+
 def build_config_namespace_keys(namespace_keys: List[str], config_dict: Dict[str, Any], prefix: str = ""):
     """
     Build namespace keys for a config dictionary, this function is recursive.
@@ -137,6 +138,12 @@ def build_config_namespace_keys(namespace_keys: List[str], config_dict: Dict[str
     :param namespace_keys: a key list to be build upon
     :param config_dict: a (Gateway) config dictionary
     :prefix: a prefix to the namespace (used when the function is called recursively.
+
+    该函数遍历 config_dict 参数的键值对。对于每个键，它将该键添加到 namespace_keys 列表中，并可选地使用 prefix 参数作为前缀。
+    如果键的值是一个字典，则该函数递归调用自身，将该值作为 config_dict 参数，并更新 prefix 参数以包括当前键。
+
+    最终结果是一个包含配置字典中所有键的列表，包括嵌套键，表示为点分隔的字符串。
+    例如，如果 config_dict 参数是 {"a": 1, "b": {"ba": 2, "bb": 3}, "c": 4}，则生成的 namespace_keys 列表将是 ["a", "b", "b.ba", "b.bb", "c"]。
     """
     for k, v in config_dict.items():
         namespace_keys.append(f"{prefix}{k}")

@@ -22,6 +22,10 @@ class MQTTCommand:
         timeout: float = 30.0,
     ):
         if threading.current_thread() != threading.main_thread():
+            # 使用 call_soon_threadsafe 方法将 mqtt_start 方法的调用安排到主线程中，并立即返回。
+            # 这是为了确保在主线程中调用该方法，因为 MQTT 客户端只能在主线程中运行。
+            # MQTT 客户端只能在主线程中运行，因为它需要与 GUI 线程进行交互，以便在 GUI 中显示与 MQTT 代理的通信。
+            # 如果在非主线程中运行 MQTT 客户端，可能会导致 GUI 线程和 MQTT 客户端线程之间的竞争条件和死锁问题。因此，为了避免这些问题，必须在主线程中运行 MQTT 客户端。
             self.ev_loop.call_soon_threadsafe(self.mqtt_start, timeout)
             return
         safe_ensure_future(self.start_mqtt_async(timeout=timeout), loop=self.ev_loop)

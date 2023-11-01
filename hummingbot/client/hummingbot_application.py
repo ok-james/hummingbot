@@ -77,11 +77,15 @@ class HummingbotApplication(*commands):
         # This is to start fetching trading pairs for auto-complete
         TradingPairFetcher.get_instance(self.client_config_map)
         self.ev_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+        # 用于存储交易所的实例
         self.markets: Dict[str, ExchangeBase] = {}
         # strategy file name and name get assigned value after import or create command，"策略文件名" 和 "名称" 在导入或创建命令之后获得赋值。
-        # 策略文件的名字，可能是老版本的策略文件，也可能是新版本的 script
+        # 策略文件的名字
+        # 如果是老版本的策略文件，则是策略配置文件的名字，包含 .yml 后缀
+        # 如果是新版本的 script，则是 script 脚本文件的名字，包含 .py 后缀
         self._strategy_file_name: Optional[str] = None
-        # 策略的名字，如果是老版本的策略文件，则是策略的名字，如果是新版本的 script ，则与 _strategy_file_name 相同，就是 script 脚本文件的名字
+        # 策略的名字，如果是老版本的策略文件，则是策略配置文件中配置的 strategy 配置项的值，也就是策略的名字，
+        # 如果是新版本的 script ，则与 _strategy_file_name 相同，就是 script 脚本文件的名字
         self.strategy_name: Optional[str] = None
         # 策略的配置，如果是老版本的策略文件，则是策略的配置信息，如果是新版本的 script ，则是 None
         self._strategy_config_map: Optional[BaseStrategyConfigMap] = None
@@ -99,6 +103,7 @@ class HummingbotApplication(*commands):
         self.placeholder_mode = False
         self.log_queue_listener: Optional[logging.handlers.QueueListener] = None
         self.data_feed: Optional[DataFeedBase] = None
+        # 广播消息的通道
         self.notifiers: List[NotifierBase] = []
         self.kill_switch: Optional[KillSwitch] = None
         self._app_warnings: Deque[ApplicationWarning] = deque()
@@ -208,6 +213,7 @@ class HummingbotApplication(*commands):
             return True
         return False
 
+    # 处理用户输入的命令
     def _handle_command(self, raw_command: str):
         # unset to_stop_config flag it triggered before loading any command
         if self.app.to_stop_config:
