@@ -141,9 +141,11 @@ class HummingbotCLI(PubSub):
         self.app = Application(
             layout=self.layout,
             full_screen=True,
+            # 键盘绑定
             key_bindings=self.bindings,
             style=load_style(self.client_config_map),
             mouse_support=True,
+            # 剪切板
             clipboard=PyperclipClipboard(),
         )
         # pre_run 参数用于设置在异步事件循环运行之前要执行的函数。这个函数将在异步事件循环启动之前被调用，通常用于执行一些初始化或预处理工作。

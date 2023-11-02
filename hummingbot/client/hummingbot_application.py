@@ -91,6 +91,7 @@ class HummingbotApplication(*commands):
         self._strategy_config_map: Optional[BaseStrategyConfigMap] = None
         # 当前正在运行的策略任务
         self.strategy_task: Optional[asyncio.Task] = None
+        # 如果是新版的脚步策略，则该属性的值是策略脚本的实例，如果是老版本的策略文件，则该属性的值是 None
         self.strategy: Optional[StrategyBase] = None
         self.market_pair: Optional[MakerTakerMarketPair] = None
         self.market_trading_pair_tuples: List[MarketTradingPairTuple] = []

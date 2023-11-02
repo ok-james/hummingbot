@@ -140,7 +140,6 @@ async def quick_start(args: argparse.Namespace, secrets_manager: BaseSecretsMana
             )
             hb.strategy_config_map = strategy_config
 
-    # Todo 作用是什么
     if strategy_config is not None:
         if not all_configs_complete(strategy_config, hb.client_config_map):
             hb.status()
